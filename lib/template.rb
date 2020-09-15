@@ -136,3 +136,42 @@ rubocop_warned_files << 'config/initializers/devise.rb' if setup_devise?
 rubocop_warned_files.each do |offended_file|
   remove_comments_from(offended_file)
 end
+
+def copy_templates
+  copy_file 'app/assets/stylesheets/application.scss'
+  copy_file 'app/javascript/stylesheets/components/_buttons.scss'
+  copy_file 'app/javascript/stylesheets/components/_forms.scss'
+  copy_file 'app/javascript/stylesheets/application.scss'
+  copy_file 'app/javascript/stylesheets/tailwind.config.js'
+  copy_file 'app/javascript/images/icons/checkmark.svg'
+end
+
+def remove_app_css
+  remove_file "app/assets/stylesheets/application.css"
+end
+
+def add_tailwind
+  run "yarn add tailwindcss"
+  run "yarn add @fullhuman/postcss-purgecss"
+
+  run "mkdir -p app/javascript/stylesheets"
+
+  append_to_file("app/javascript/packs/application.js", 'import "stylesheets/application"')
+  inject_into_file("./postcss.config.js",
+  "let tailwindcss = require('tailwindcss');\n",  before: "module.exports")
+  inject_into_file("./postcss.config.js", "\n    tailwindcss('./app/javascript/stylesheets/tailwind.config.js'),", after: "plugins: [")
+
+  run "mkdir -p app/javascript/stylesheets/components"
+end
+
+def copy_postcss_config
+  run "rm postcss.config.js"
+  template "postcss.config.js"
+end
+
+after_bundle do
+  copy_templates
+  remove_app_css
+  add_tailwind
+  copy_postcss_config
+end
